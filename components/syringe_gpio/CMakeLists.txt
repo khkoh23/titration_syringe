@@ -1,0 +1,1 @@
+idf_component_register(SRCS syringe_gpio.c INCLUDE_DIRS . REQUIRES driver)
