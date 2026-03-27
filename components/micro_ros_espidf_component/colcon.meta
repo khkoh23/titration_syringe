@@ -35,13 +35,15 @@
         "rmw_microxrcedds": {
             "cmake-args": [
                 "-DRMW_UXRCE_XML_BUFFER_LENGTH=400",
-                "-DRMW_UXRCE_TRANSPORT=udp",
+                "-DRMW_UXRCE_TRANSPORT=custom",
                 "-DRMW_UXRCE_MAX_NODES=1",
                 "-DRMW_UXRCE_MAX_PUBLISHERS=5",
                 "-DRMW_UXRCE_MAX_SUBSCRIPTIONS=5",
                 "-DRMW_UXRCE_MAX_SERVICES=1",
                 "-DRMW_UXRCE_MAX_CLIENTS=1",
-                "-DRMW_UXRCE_MAX_HISTORY=1"
+                "-DRMW_UXRCE_MAX_HISTORY=10"
+                "-DRMW_UXRCE_MAX_GUARD_CONDITION=15",
+                "-DRMW_UXRCE_ENTITY_CREATION_DESTROY_TIMEOUT=0",
             ]
         },
         "embeddedrtps": {

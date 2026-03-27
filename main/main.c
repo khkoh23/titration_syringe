@@ -15,6 +15,7 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <std_msgs/msg/int8.h>
+#include <std_msgs/msg/int16.h>
 #include <std_msgs/msg/u_int16.h>
 #include <std_msgs/msg/float32.h>
 
@@ -50,10 +51,12 @@ rclc_support_t support;
 rclc_executor_t executor;
 rcl_allocator_t allocator;
 rcl_node_t node;
-rcl_publisher_t ph_publisher, temperature_publisher;
-rcl_timer_t ph_timer, temperature_timer;
+rcl_publisher_t ph_publisher, temperature_publisher, orp_publisher;
+// rcl_timer_t ph_timer, temperature_timer, orp_timer;
+rcl_timer_t tanmone_timer;
 rcl_subscription_t syringecmd_subscriber, syringesetvol_subscriber, syringestepvol_subscriber;
 std_msgs__msg__Float32 ph_msg, temperature_msg;
+std_msgs__msg__Int16 orp_msg;
 std_msgs__msg__Int8 syringecmd_msg;
 std_msgs__msg__UInt16 syringesetvol_msg, syringestepvol_msg;
 const int micro_ros_timeout_ms = 100; // Timeout for each micro ros ping attempt
@@ -74,11 +77,13 @@ uint16_t syringe_set_volume = 20000, new_syringe_set_volume; // unit: 0.1uL, def
 uint16_t syringe_step_volume = 200; // default: 20 uL
 uint16_t syringe_holding_volume; // unit: 0.1uL (Maximum 0xFFFF =  6553.5 uL (6.5535 mL)
 
-uint8_t tanmone_device_id = 0x02;
+uint8_t tanmone_device_ph = 0x02;
+uint8_t tanmone_device_orp = 0x04;
 uint8_t tanmone_task = 0;
 int16_t tanmone_temperature_buffer, tanmone_ORP_buffer;
 uint16_t tanmone_pH_buffer;
-float tanmone_pH, tanmone_temperature, tanmone_ORP;
+float tanmone_pH, tanmone_temperature;
+int16_t tanmone_ORP; // UOM is mV
 
 static size_t uart_port = UART_NUM_0;
 
@@ -164,30 +169,32 @@ void tanmone_uart_help_response() {
 }
 
 void tanmone_uart_task(void *arg) { 
-	tanmone_task = 3;
+	tanmone_task = 4;
 	vTaskDelay(pdMS_TO_TICKS(250)); 
 	while (1) {
 		switch (tanmone_task) {
 			case 1:
-				if (tanmone_uart_readpH(tanmone_device_id, &tanmone_pH_buffer)) {
+				if (tanmone_uart_readpH(tanmone_device_ph, &tanmone_pH_buffer)) {
 					tanmone_pH = tanmone_pH_buffer / 100.0;
 				}
 				break;
 			case 2:
-				if (tanmone_uart_readTemperature(tanmone_device_id, &tanmone_temperature_buffer)) {
+				if (tanmone_uart_readTemperature(tanmone_device_ph, &tanmone_temperature_buffer)) {
 					tanmone_temperature = tanmone_temperature_buffer / 10.0;
 				}
 				break;
 			case 3:
-				if (tanmone_uart_readBatch(tanmone_device_id, &tanmone_pH_buffer, &tanmone_temperature_buffer)) {
+				if (tanmone_uart_readBatch(tanmone_device_ph, &tanmone_pH_buffer, &tanmone_temperature_buffer)) {
 					tanmone_pH = tanmone_pH_buffer / 100.0;
 					tanmone_temperature = tanmone_temperature_buffer / 10.0;
 				}
+//				tanmone_task = 4;
 				break;
 			case 4:
-				if (tanmone_uart_readORP(tanmone_device_id, &tanmone_ORP_buffer)) {
-					tanmone_ORP = tanmone_ORP_buffer / 1000.0;
+				if (tanmone_uart_readORP(tanmone_device_orp, &tanmone_ORP_buffer)) {
+					tanmone_ORP = tanmone_ORP_buffer; 
 				}
+//				tanmone_task = 3;
 				break;
 			default:
 				break;
@@ -201,7 +208,7 @@ void tanmone_uart_task(void *arg) {
 
 /* -------------------- micro ros -------------------- -------------------- -------------------- -------------------- -------------------- --------------------
 */
-
+/*
 void ph_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 	RCLC_UNUSED(last_call_time);
 	if (timer != NULL) {
@@ -215,6 +222,26 @@ void temperature_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 	if (timer != NULL) {
 		temperature_msg.data = tanmone_temperature;
 		RCSOFTCHECK(rcl_publish(&temperature_publisher, &temperature_msg, NULL));
+	}
+}
+
+void orp_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
+	RCLC_UNUSED(last_call_time);
+	if (timer != NULL) {
+		orp_msg.data = tanmone_ORP;
+		RCSOFTCHECK(rcl_publish(&orp_publisher, &orp_msg, NULL));
+	}
+}
+*/
+void tanmone_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
+	RCLC_UNUSED(last_call_time);
+	if (timer != NULL) {
+		ph_msg.data = tanmone_pH;
+		temperature_msg.data = tanmone_temperature;
+		orp_msg.data = tanmone_ORP;
+		RCSOFTCHECK(rcl_publish(&ph_publisher, &ph_msg, NULL));
+		RCSOFTCHECK(rcl_publish(&temperature_publisher, &temperature_msg, NULL));
+		RCSOFTCHECK(rcl_publish(&orp_publisher, &orp_msg, NULL));
 	}
 }
 
@@ -239,15 +266,20 @@ bool create_entities(void) {
 	RCCHECK(rclc_node_init_default(&node, "titration_mcu", ROS_NAMESPACE, &support)); // create node
 	RCCHECK(rclc_publisher_init_default(&ph_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), "ph"));
 	RCCHECK(rclc_publisher_init_default(&temperature_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), "temperature"));
+	RCCHECK(rclc_publisher_init_default(&orp_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "orp"));
 	RCCHECK(rclc_subscription_init_default(&syringecmd_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), "syringe_cmd"));
 	RCCHECK(rclc_subscription_init_default(&syringesetvol_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), "syringe_set_vol"));
 	RCCHECK(rclc_subscription_init_default(&syringestepvol_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), "syringe_step_vol"));
-	RCCHECK(rclc_timer_init_default2(&ph_timer, &support, RCL_MS_TO_NS(250), ph_timer_callback, true)); 
-	RCCHECK(rclc_timer_init_default2(&temperature_timer, &support, RCL_MS_TO_NS(250), temperature_timer_callback, true)); 
+//	RCCHECK(rclc_timer_init_default2(&ph_timer, &support, RCL_MS_TO_NS(250), ph_timer_callback, true)); 
+//	RCCHECK(rclc_timer_init_default2(&temperature_timer, &support, RCL_MS_TO_NS(250), temperature_timer_callback, true)); 
+//	RCCHECK(rclc_timer_init_default2(&orp_timer, &support, RCL_MS_TO_NS(250), orp_timer_callback, true)); 
+	RCCHECK(rclc_timer_init_default2(&tanmone_timer, &support, RCL_MS_TO_NS(250), tanmone_timer_callback, true)); 
 	executor = rclc_executor_get_zero_initialized_executor(); 
 	RCCHECK(rclc_executor_init(&executor, &support.context, 10, &allocator)); // create executor
-	RCCHECK(rclc_executor_add_timer(&executor, &ph_timer));
-	RCCHECK(rclc_executor_add_timer(&executor, &temperature_timer));
+//	RCCHECK(rclc_executor_add_timer(&executor, &ph_timer));
+//	RCCHECK(rclc_executor_add_timer(&executor, &temperature_timer));
+//	RCCHECK(rclc_executor_add_timer(&executor, &orp_timer));
+	RCCHECK(rclc_executor_add_timer(&executor, &tanmone_timer));
 	RCCHECK(rclc_executor_add_subscription(&executor, &syringecmd_subscriber, &syringecmd_msg, &syringecmd_callback, ON_NEW_DATA));
 	RCCHECK(rclc_executor_add_subscription(&executor, &syringesetvol_subscriber, &syringesetvol_msg, &syringesetvol_callback, ON_NEW_DATA));
 	RCCHECK(rclc_executor_add_subscription(&executor, &syringestepvol_subscriber, &syringestepvol_msg, &syringestepvol_callback, ON_NEW_DATA));
@@ -259,8 +291,11 @@ void destroy_entities(void) {
     (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 	RCCHECK(rcl_publisher_fini(&ph_publisher, &node));
 	RCCHECK(rcl_publisher_fini(&temperature_publisher, &node));
-	RCCHECK(rcl_timer_fini(&ph_timer));
-	RCCHECK(rcl_timer_fini(&temperature_timer));
+	RCCHECK(rcl_publisher_fini(&orp_publisher, &node));
+//	RCCHECK(rcl_timer_fini(&ph_timer));
+//	RCCHECK(rcl_timer_fini(&temperature_timer));
+//	RCCHECK(rcl_timer_fini(&orp_timer));
+	RCCHECK(rcl_timer_fini(&tanmone_timer));
 	RCCHECK(rcl_subscription_fini(&syringecmd_subscriber, &node));
 	RCCHECK(rcl_subscription_fini(&syringesetvol_subscriber, &node));
 	RCCHECK(rcl_subscription_fini(&syringestepvol_subscriber, &node));
