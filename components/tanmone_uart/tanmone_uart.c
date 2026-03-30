@@ -4,6 +4,7 @@
 Data presentation: two decimal places from unsigned short 0 to 1400
 Range: 0.00 to 14.00 pH*/
 bool tanmone_uart_readpH (const uint8_t address, uint16_t *data) { 
+    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
     uint8_t func_ = 0x03;
     uint8_t msg_[] = {address, func_, 0x00, 0x00, 0x00, 0x01};
 	uint16_t crc_ = tanmone_uart_CRC16(msg_, sizeof(msg_));
@@ -11,7 +12,7 @@ bool tanmone_uart_readpH (const uint8_t address, uint16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 0;
+    uint32_t length_read = 7;
     ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
     length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
@@ -31,13 +32,13 @@ bool tanmone_uart_readpH (const uint8_t address, uint16_t *data) {
         *data = (buf_read[3] << 8) | buf_read[4];
         return true;
     }
-    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
 } 
 
 /*Function code 0x03, Starting address 0x0001, Quantity of registers 0x0001
 Data presentation: one decimal place from short -100 to 1300
 Range: -10.0 to 130.0 degC*/
 bool tanmone_uart_readTemperature (const uint8_t address, int16_t *data) {  
+    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
     uint8_t func_ = 0x03;
     uint8_t msg_[] = {address, func_, 0x00, 0x01, 0x00, 0x01};
 	uint16_t crc_ = tanmone_uart_CRC16(msg_, sizeof(msg_));
@@ -45,7 +46,7 @@ bool tanmone_uart_readTemperature (const uint8_t address, int16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 0;
+    uint32_t length_read = 7;
     ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
     length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
@@ -65,13 +66,13 @@ bool tanmone_uart_readTemperature (const uint8_t address, int16_t *data) {
         *data = (buf_read[3] << 8) | buf_read[4];
         return true;
     }
-    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
 } 
 
 /*Function code 0x03, Starting address 0x0000, Quantity of registers 0x0002
 Data presentation: two decimal places from unsigned short 0 to 1400; one decimal place from short -100 to 1300,
 Range: 0.00 to 14.00 pH; -10.0 to 130.0 degC*/
 bool tanmone_uart_readBatch(const uint8_t address, uint16_t *data1, int16_t *data2) {
+    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
     uint8_t func_ = 0x03;
     uint8_t msg_[] = {address, func_, 0x00, 0x00, 0x00, 0x02};
 	uint16_t crc_ = tanmone_uart_CRC16(msg_, sizeof(msg_));
@@ -79,7 +80,7 @@ bool tanmone_uart_readBatch(const uint8_t address, uint16_t *data1, int16_t *dat
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[9];
-    uint32_t length_read = 0;
+    uint32_t length_read = 9;
     ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
     length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[7] << 8) | buf_read[8];
@@ -100,13 +101,13 @@ bool tanmone_uart_readBatch(const uint8_t address, uint16_t *data1, int16_t *dat
         *data2 = (buf_read[5] << 8) | buf_read[6];
         return true;
     }
-    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
 }
 
 /*Function code 0x03, Starting address 0x0002, Quantity of registers 0x0001
 Data presentation: signed integer from short -2000 to 2000
 Range: -2000 to 2000 mV*/
 bool tanmone_uart_readORP (const uint8_t address, int16_t *data) { 
+    ESP_ERROR_CHECK(uart_flush(UART_NUM_1));
     uint8_t func_ = 0x03;
     uint8_t msg_[] = {address, func_, 0x00, 0x02, 0x00, 0x01};
 	uint16_t crc_ = tanmone_uart_CRC16(msg_, sizeof(msg_));
@@ -114,7 +115,7 @@ bool tanmone_uart_readORP (const uint8_t address, int16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 0;
+    uint32_t length_read = 7;
     ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
     length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
@@ -133,8 +134,7 @@ bool tanmone_uart_readORP (const uint8_t address, int16_t *data) {
     else { 
         *data = (buf_read[3] << 8) | buf_read[4];
         return true;
-    }
-    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
+    } 
 } 
 
 uint16_t tanmone_uart_CRC16(uint8_t *puchMsg, uint16_t usDataLen) {

@@ -169,7 +169,7 @@ void tanmone_uart_help_response() {
 }
 
 void tanmone_uart_task(void *arg) { 
-	tanmone_task = 4;
+	tanmone_task = 3;
 	vTaskDelay(pdMS_TO_TICKS(250)); 
 	while (1) {
 		switch (tanmone_task) {
@@ -188,13 +188,13 @@ void tanmone_uart_task(void *arg) {
 					tanmone_pH = tanmone_pH_buffer / 100.0;
 					tanmone_temperature = tanmone_temperature_buffer / 10.0;
 				}
-//				tanmone_task = 4;
+				tanmone_task = 4;
 				break;
 			case 4:
 				if (tanmone_uart_readORP(tanmone_device_orp, &tanmone_ORP_buffer)) {
 					tanmone_ORP = tanmone_ORP_buffer; 
 				}
-//				tanmone_task = 3;
+				tanmone_task = 3;
 				break;
 			default:
 				break;
