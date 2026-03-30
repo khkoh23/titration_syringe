@@ -41,9 +41,9 @@
                 "-DRMW_UXRCE_MAX_SUBSCRIPTIONS=5",
                 "-DRMW_UXRCE_MAX_SERVICES=1",
                 "-DRMW_UXRCE_MAX_CLIENTS=1",
-                "-DRMW_UXRCE_MAX_HISTORY=10"
+                "-DRMW_UXRCE_MAX_HISTORY=10",
                 "-DRMW_UXRCE_MAX_GUARD_CONDITION=15",
-                "-DRMW_UXRCE_ENTITY_CREATION_DESTROY_TIMEOUT=0",
+                "-DRMW_UXRCE_ENTITY_CREATION_DESTROY_TIMEOUT=0"
             ]
         },
         "embeddedrtps": {
@@ -53,12 +53,6 @@
                 "-DERTPS_MAX_SERVICES=1",
                 "-DERTPS_MAX_CLIENTS=1",
                 "-DERTPS_MAX_HISTORY=10"
-            ]
-        },
-        "tracetools": {
-            "cmake-args": [
-                "-DTRACETOOLS_DISABLED=ON",
-                "-DTRACETOOLS_STATUS_CHECKING_TOOL=OFF"
             ]
         }
     }

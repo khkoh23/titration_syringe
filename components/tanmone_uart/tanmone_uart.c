@@ -12,21 +12,34 @@ bool tanmone_uart_readpH (const uint8_t address, uint16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 7;
-    ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
-    length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
+    int length_read = uart_read_bytes(UART_NUM_1, buf_read, sizeof(buf_read), pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
     uint16_t expected_crc = tanmone_uart_CRC16(buf_read, length_read - 2);
     // Minimum response length check:
-    if (length_read < 5) return false; // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+    if (length_read < 5) { // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+        *data = 0;
+        return false; 
+    }
     // Address check:
-    else if (buf_read[0] != address) return false;
+    else if (buf_read[0] != address) {
+        *data = 0;
+        return false;
+    }
     // Exception response check:
-    else if (buf_read[1] == (func_ | tanmone_exception_func_)) return false; // 0x83
+    else if (buf_read[1] == (func_ | tanmone_exception_func_)) { // 0x83
+        *data = 0;
+        return false;
+    } 
     // Function code check:
-    else if (buf_read[1] != func_) return false; 
+    else if (buf_read[1] != func_) {
+        *data = 0;
+        return false; 
+    }
     // CRC check:
-    else if (received_crc != expected_crc) return false;
+    else if (received_crc != expected_crc) {
+        *data = 0;
+        return false;
+    }
     // Extract valid data
     else { 
         *data = (buf_read[3] << 8) | buf_read[4];
@@ -46,21 +59,34 @@ bool tanmone_uart_readTemperature (const uint8_t address, int16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 7;
-    ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
-    length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
+    int length_read = uart_read_bytes(UART_NUM_1, buf_read, sizeof(buf_read), pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
     uint16_t expected_crc = tanmone_uart_CRC16(buf_read, length_read - 2);
     // Minimum response length check:
-    if (length_read < 5) return false; // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+    if (length_read < 5) { // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+        *data = 0; 
+        return false; 
+    }
     // Address check:
-    else if (buf_read[0] != address) return false;
+    else if (buf_read[0] != address) {
+        *data = 0; 
+        return false;
+    }
     // Exception response check:
-    else if (buf_read[1] == (func_ | tanmone_exception_func_)) return false; // 0x83
+    else if (buf_read[1] == (func_ | tanmone_exception_func_)) { // 0x83
+        *data = 0; 
+        return false; 
+    }
     // Function code check:
-    else if (buf_read[1] != func_) return false; 
+    else if (buf_read[1] != func_) {
+        *data = 0; 
+        return false; 
+    }
     // CRC check:
-    else if (received_crc != expected_crc) return false;
+    else if (received_crc != expected_crc) {
+        *data = 0; 
+        return false;
+    }
     // Extract valid data
     else { 
         *data = (buf_read[3] << 8) | buf_read[4];
@@ -72,7 +98,7 @@ bool tanmone_uart_readTemperature (const uint8_t address, int16_t *data) {
 Data presentation: two decimal places from unsigned short 0 to 1400; one decimal place from short -100 to 1300,
 Range: 0.00 to 14.00 pH; -10.0 to 130.0 degC*/
 bool tanmone_uart_readBatch(const uint8_t address, uint16_t *data1, int16_t *data2) {
-    ESP_ERROR_CHECK(uart_flush(UART_NUM_1)); 
+    ESP_ERROR_CHECK(uart_flush(UART_NUM_1));
     uint8_t func_ = 0x03;
     uint8_t msg_[] = {address, func_, 0x00, 0x00, 0x00, 0x02};
 	uint16_t crc_ = tanmone_uart_CRC16(msg_, sizeof(msg_));
@@ -80,21 +106,34 @@ bool tanmone_uart_readBatch(const uint8_t address, uint16_t *data1, int16_t *dat
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[9];
-    uint32_t length_read = 9;
-    ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
-    length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
+    int length_read = uart_read_bytes(UART_NUM_1, buf_read, sizeof(buf_read), pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[7] << 8) | buf_read[8];
     uint16_t expected_crc = tanmone_uart_CRC16(buf_read, length_read - 2);
     // Minimum response length check:
-    if (length_read < 5) return false; // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+    if (length_read < 5) { // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+        *data1 = 0; *data2 = 0;
+        return false; 
+    }
     // Address check:
-    else if (buf_read[0] != address) return false;
+    else if (buf_read[0] != address) {
+        *data1 = 0; *data2 = 0;
+        return false;
+    }
     // Exception response check:
-    else if (buf_read[1] == (func_ | tanmone_exception_func_)) return false; // 0x83
+    else if (buf_read[1] == (func_ | tanmone_exception_func_)) { // 0x83
+        *data1 = 0; *data2 = 0;
+        return false; 
+    }
     // Function code check:
-    else if (buf_read[1] != func_) return false; 
+    else if (buf_read[1] != func_) {
+        *data1 = 0; *data2 = 0;
+        return false; 
+    }
     // CRC check:
-    else if (received_crc != expected_crc) return false;
+    else if (received_crc != expected_crc) {
+        *data1 = 0; *data2 = 0;
+        return false;
+    }
     // Extract valid data
     else { 
         *data1 = (buf_read[3] << 8) | buf_read[4];
@@ -115,21 +154,34 @@ bool tanmone_uart_readORP (const uint8_t address, int16_t *data) {
     uart_write_bytes(UART_NUM_1, src_write, sizeof(src_write));
     ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_1, pdMS_TO_TICKS(tanmone_uart_write_timeout)));
     uint8_t buf_read[7];
-    uint32_t length_read = 7;
-    ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_NUM_1, (size_t*)&length_read));
-    length_read = uart_read_bytes(UART_NUM_1, buf_read, length_read, pdMS_TO_TICKS(tanmone_uart_read_timeout));
+    int length_read = uart_read_bytes(UART_NUM_1, buf_read, sizeof(buf_read), pdMS_TO_TICKS(tanmone_uart_read_timeout));
     uint16_t received_crc = (buf_read[5] << 8) | buf_read[6];
     uint16_t expected_crc = tanmone_uart_CRC16(buf_read, length_read - 2);
     // Minimum response length check:
-    if (length_read < 5) return false; // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+    if (length_read < 5) { // response length shorter than address (1) + functioncode (1) + bytecount (1) + crc (2)
+        *data = 0;
+        return false; 
+    }
     // Address check:
-    else if (buf_read[0] != address) return false;
+    else if (buf_read[0] != address) {
+        *data = 0;
+        return false;
+    }
     // Exception response check:
-    else if (buf_read[1] == (func_ | tanmone_exception_func_)) return false; // 0x83
+    else if (buf_read[1] == (func_ | tanmone_exception_func_)) { // 0x83
+        *data = 0;
+        return false; 
+    }
     // Function code check:
-    else if (buf_read[1] != func_) return false; 
+    else if (buf_read[1] != func_) {
+        *data = 0;
+        return false; 
+    }
     // CRC check:
-    else if (received_crc != expected_crc) return false;
+    else if (received_crc != expected_crc) {
+        *data = 0;
+        return false;
+    }
     // Extract valid data
     else { 
         *data = (buf_read[3] << 8) | buf_read[4];
